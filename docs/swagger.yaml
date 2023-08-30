@@ -1,0 +1,283 @@
+definitions:
+  api.AddUserRole:
+    properties:
+      role:
+        type: string
+      username:
+        type: string
+    required:
+    - role
+    - username
+    type: object
+  api.CheckRole:
+    properties:
+      role:
+        type: string
+    required:
+    - role
+    type: object
+  api.CreateRole:
+    properties:
+      role:
+        type: string
+    required:
+    - role
+    type: object
+  api.CreateUser:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  api.DeleteRole:
+    properties:
+      role:
+        type: string
+    required:
+    - role
+    type: object
+  api.DeleteUser:
+    properties:
+      username:
+        type: string
+    required:
+    - username
+    type: object
+  api.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      status:
+        type: integer
+    type: object
+  api.Token:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+host: 127.0.0.1
+info:
+  contact: {}
+  title: auth service sample
+  version: "1.0"
+paths:
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: logout
+      tags:
+      - auth
+  /auth/token:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/api.Token'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Token:
+              type: string
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: token
+      tags:
+      - auth
+  /role/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateRole'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: create role
+      tags:
+      - role
+  /role/delete:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/api.DeleteRole'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: delete role
+      tags:
+      - role
+  /user/addRole:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/api.AddUserRole'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: add role to user
+      tags:
+      - user
+  /user/checkRole:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/api.CheckRole'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response'
+            - properties:
+                data:
+                  type: boolean
+              type: object
+      summary: check role
+      tags:
+      - user
+  /user/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: create user
+      tags:
+      - user
+  /user/delete:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/api.DeleteUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: delete user
+      tags:
+      - user
+  /user/roles:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求参数
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response'
+            - properties:
+                data:
+                  items:
+                    type: string
+                  type: array
+              type: object
+      summary: roles
+      tags:
+      - user
+schemes:
+- http
+swagger: "2.0"
