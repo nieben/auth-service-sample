@@ -37,6 +37,11 @@ func TokenAuth() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, api.NewFailResponse(TokenExpiredErr, nil))
 			return
 		}
+		if model.GetUser(t.User.Username) == nil { // user deleted
+			t.Remove()
+			c.AbortWithStatusJSON(http.StatusUnauthorized, api.NewFailResponse(model.UserNotExistErr, nil))
+			return
+		}
 
 		c.Set("user", t.User)
 		c.Set("token", t)

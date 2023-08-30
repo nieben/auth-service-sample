@@ -84,12 +84,12 @@ func (u *UserController) AddRole(c *gin.Context) {
 	}
 
 	user := model.GetUser(in.Username)
-	if user == nil || user.Status == 1 {
+	if user == nil {
 		c.JSON(http.StatusOK, api.NewFailResponse(model.UserNotExistErr, nil))
 		return
 	}
 	role := model.GetRole(in.Role)
-	if role == nil || role.Status == 1 {
+	if role == nil {
 		c.JSON(http.StatusOK, api.NewFailResponse(model.RoleNotExistErr, nil))
 		return
 	}
@@ -123,7 +123,7 @@ func (u *UserController) CheckRole(c *gin.Context) {
 	}
 
 	role := model.GetRole(in.Role)
-	if role == nil || role.Status == 1 {
+	if role == nil {
 		c.JSON(http.StatusOK, api.NewFailResponse(model.RoleNotExistErr, nil))
 		return
 	}

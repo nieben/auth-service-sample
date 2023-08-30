@@ -3,8 +3,8 @@ package model
 import (
 	"errors"
 	"golang.org/x/crypto/bcrypt"
+	"sort"
 	"sync"
-	"time"
 )
 
 const (
@@ -27,11 +27,8 @@ var (
 )
 
 type User struct {
-	Username  string `json:"username" binding:"required"`
-	Password  string `json:"password" binding:"required"`
-	Status    uint8  `json:"status" binding:"-"` // 0: normal 1: deleted
-	CreatedAt int64  `json:"createdAt" binding:"-"`
-	DeletedAt int64  `json:"deletedAt" binding:"-"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 func (u *User) CheckPwd(password string) bool {
@@ -60,10 +57,8 @@ func CreateUser(username, password string) error {
 	if _, ok := Users[username]; ok {
 		return UserExistErr
 	} else {
-		ts := time.Now().Unix()
 		u := &User{
-			Username:  username,
-			CreatedAt: ts,
+			Username: username,
 		}
 
 		// encrypt password
@@ -82,12 +77,18 @@ func CreateUser(username, password string) error {
 func DeleteUser(username string) error {
 	// lock
 	uLock.Lock()
-	defer uLock.Unlock()
 
 	if _, ok := Users[username]; !ok {
+		uLock.Unlock()
 		return UserNotExistErr
 	} else {
 		delete(Users, username)
+		uLock.Unlock()
+
+		// delete user in UserRoles
+		urLock.Lock()
+		delete(UserRoles, username)
+		urLock.Unlock()
 	}
 
 	return nil
@@ -124,17 +125,24 @@ func (u *User) CheckRole(role string) bool {
 }
 
 func (u *User) Roles() []string {
-	urLock.RLock()
-	defer urLock.RUnlock()
+	urLock.Lock()
 
 	roles := make([]string, 0)
 	if m, ok := UserRoles[u.Username]; !ok {
+		urLock.Unlock()
 		return roles
 	} else {
-		for r, _ := range m {
-			roles = append(roles, r)
+		for r := range m {
+			role := GetRole(r)
+			if role == nil { // role has been deleted
+				delete(UserRoles[u.Username], r)
+			} else {
+				roles = append(roles, r)
+			}
 		}
+		urLock.Unlock()
 	}
 
+	sort.Strings(roles)
 	return roles
 }

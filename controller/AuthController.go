@@ -35,10 +35,6 @@ func (a *AuthController) Token(c *gin.Context) {
 		c.JSON(http.StatusOK, api.NewFailResponse(model.UserCheckErr, nil))
 		return
 	}
-	if user.Status == 1 { // deleted
-		c.JSON(http.StatusOK, api.NewFailResponse(model.UserNotExistErr, nil))
-		return
-	}
 	if !user.CheckPwd(in.Password) {
 		c.JSON(http.StatusOK, api.NewFailResponse(model.UserCheckErr, nil))
 		return

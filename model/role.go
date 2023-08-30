@@ -3,7 +3,6 @@ package model
 import (
 	"errors"
 	"sync"
-	"time"
 )
 
 const (
@@ -21,10 +20,7 @@ var (
 )
 
 type Role struct {
-	Name      string `json:"name" binding:"required"`
-	Status    uint8  `json:"status" binding:"-"` // 0: normal 1: deleted
-	CreatedAt int64  `json:"createdAt" binding:"-"`
-	DeletedAt int64  `json:"deletedAt" binding:"-"`
+	Name string `json:"name" binding:"required"`
 }
 
 func GetRole(role string) *Role {
@@ -42,10 +38,8 @@ func CreateRole(role string) error {
 	if _, ok := Roles[role]; ok {
 		return RoleExistErr
 	} else {
-		ts := time.Now().Unix()
 		r := &Role{
-			Name:      role,
-			CreatedAt: ts,
+			Name: role,
 		}
 		Roles[r.Name] = r
 

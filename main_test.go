@@ -18,9 +18,11 @@ import (
 var (
 	router *gin.Engine
 
-	initToken      = ""
+	initBobToken   = ""
+	initEveToken   = ""
 	expireToken    = ""
-	bobToken       = &initToken
+	bobToken       = &initBobToken
+	eveToken       = &initEveToken
 	bobExpireToken = &expireToken // test for expire
 	invalidToken   *string
 )
@@ -51,6 +53,33 @@ func post(uri, method string, param interface{}, headers map[string]*string, rou
 // test in one flow for all endpoints and cases
 // user: bob eve
 // role: admin ops dev
+
+// add roles to bob: admin & ops
+
+// now get roles
+// bob: [admin ops]
+// eve: []
+
+// bob create two token: bob1, bob2
+// eve create token: eve1
+
+// bob check role admin => true
+// bob check role dev => false
+
+// delete role: ops
+// bob check role ops => role not exist
+
+// bob get roles => [admin]
+
+// delete user eve
+// eve get roles(with active token eve1) => user not exist
+// eve try create token => invalid username or password(deleted)
+
+// invalidate token: bob1
+// bob get roles(with bob1) => invalid token
+
+// sleep token lifetime+1 second
+// get roles bob(with bob2) => token expired
 func TestFullFlow(t *testing.T) {
 	cases := []struct {
 		path       string
@@ -58,6 +87,7 @@ func TestFullFlow(t *testing.T) {
 		name       string
 		expectCode int64
 		expectErr  string
+		expectData interface{}
 		param      interface{}
 		header     map[string]*string
 	}{
@@ -87,7 +117,7 @@ func TestFullFlow(t *testing.T) {
 		{
 			path:       "/user/create",
 			method:     "POST",
-			name:       "ok",
+			name:       "ok bob",
 			expectCode: 0,
 			expectErr:  "",
 			param: api.CreateUser{
@@ -109,7 +139,7 @@ func TestFullFlow(t *testing.T) {
 		{
 			path:       "/user/create",
 			method:     "POST",
-			name:       "ok 2",
+			name:       "ok eve",
 			expectCode: 0,
 			expectErr:  "",
 			param: api.CreateUser{
@@ -126,16 +156,6 @@ func TestFullFlow(t *testing.T) {
 			expectErr:  model.UserNotExistErr.Error(),
 			param: api.DeleteUser{
 				Username: "notexist",
-			},
-		},
-		{
-			path:       "/user/delete",
-			method:     "POST",
-			name:       "ok",
-			expectCode: 0,
-			expectErr:  "",
-			param: api.DeleteUser{
-				Username: "eve",
 			},
 		},
 		// role operation
@@ -200,16 +220,6 @@ func TestFullFlow(t *testing.T) {
 				Role: "notexist",
 			},
 		},
-		{
-			path:       "/role/delete",
-			method:     "POST",
-			name:       "ok",
-			expectCode: 0,
-			expectErr:  "",
-			param: api.DeleteRole{
-				Role: "dev",
-			},
-		},
 		// add user role
 		{
 			path:       "/user/addRole",
@@ -255,6 +265,17 @@ func TestFullFlow(t *testing.T) {
 				Role:     "admin",
 			},
 		},
+		{
+			path:       "/user/addRole",
+			method:     "POST",
+			name:       "ok ops",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.AddUserRole{
+				Username: "bob",
+				Role:     "ops",
+			},
+		},
 		// auth
 		{
 			path:       "/auth/token",
@@ -265,17 +286,6 @@ func TestFullFlow(t *testing.T) {
 			param: api.Token{
 				Username: "notexist",
 				Password: "123456",
-			},
-		},
-		{
-			path:       "/auth/token",
-			method:     "POST",
-			name:       "user deleted",
-			expectCode: 1,
-			expectErr:  model.UserCheckErr.Error(),
-			param: api.Token{
-				Username: "eve",
-				Password: "456789",
 			},
 		},
 		{
@@ -292,7 +302,7 @@ func TestFullFlow(t *testing.T) {
 		{
 			path:       "/auth/token",
 			method:     "POST",
-			name:       "ok",
+			name:       "ok bob",
 			expectCode: 0,
 			expectErr:  "",
 			param: api.Token{
@@ -309,6 +319,17 @@ func TestFullFlow(t *testing.T) {
 			param: api.Token{
 				Username: "bob",
 				Password: "123456",
+			},
+		},
+		{
+			path:       "/auth/token",
+			method:     "POST",
+			name:       "ok eve",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.Token{
+				Username: "eve",
+				Password: "456789",
 			},
 		},
 		// check role(with token check)
@@ -339,31 +360,116 @@ func TestFullFlow(t *testing.T) {
 			name:       "ok true",
 			expectCode: 0,
 			expectErr:  "",
+			expectData: true,
 			param: api.CheckRole{
 				Role: "admin",
 			},
 			header: map[string]*string{"token": bobToken},
 		},
+		// bob does not have dev
 		{
 			path:       "/user/checkRole",
 			method:     "POST",
 			name:       "ok false",
 			expectCode: 0,
 			expectErr:  "",
+			expectData: false,
+			param: api.CheckRole{
+				Role: "dev",
+			},
+			header: map[string]*string{"token": bobToken},
+		},
+		// all roles
+		// bob: [admin, ops]
+		{
+			path:       "/user/roles",
+			method:     "POST",
+			name:       "ok bob",
+			expectCode: 0,
+			expectErr:  "",
+			expectData: []interface{}{"admin", "ops"},
+			param:      nil,
+			header:     map[string]*string{"token": bobToken},
+		},
+		// eve: []
+		{
+			path:       "/user/roles",
+			method:     "POST",
+			name:       "ok eve",
+			expectCode: 0,
+			expectErr:  "",
+			expectData: []interface{}{},
+			param:      nil,
+			header:     map[string]*string{"token": eveToken},
+		},
+		// delete one added role
+		// bob: [admin]  (ops deleted)
+		{
+			path:       "/role/delete",
+			method:     "POST",
+			name:       "ok",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.DeleteRole{
+				Role: "ops",
+			},
+		},
+		// check deleted role
+		{
+			path:       "/user/checkRole",
+			method:     "POST",
+			name:       "check deleted role",
+			expectCode: 1,
+			expectErr:  model.RoleNotExistErr.Error(),
 			param: api.CheckRole{
 				Role: "ops",
 			},
 			header: map[string]*string{"token": bobToken},
 		},
-		// all roles
+		// roles after one role is deleted
 		{
 			path:       "/user/roles",
 			method:     "POST",
-			name:       "ok",
+			name:       "roles with one been deleted",
 			expectCode: 0,
 			expectErr:  "",
+			expectData: []interface{}{"admin"},
 			param:      nil,
 			header:     map[string]*string{"token": bobToken},
+		},
+		// delete user eve
+		{
+			path:       "/user/delete",
+			method:     "POST",
+			name:       "ok eve",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.DeleteUser{
+				Username: "eve",
+			},
+		},
+		// eveToken become invalid because user eve has been deleted
+		// active token with user been deleted
+		{
+			path:       "/user/roles",
+			method:     "POST",
+			name:       "active token with user been deleted",
+			expectCode: 1,
+			expectErr:  model.UserNotExistErr.Error(),
+			param:      nil,
+			header:     map[string]*string{"token": eveToken},
+		},
+		// auth with deleted user
+		{
+			path:       "/auth/token",
+			method:     "POST",
+			name:       "user deleted",
+			expectCode: 1,
+			expectErr:  model.UserCheckErr.Error(),
+			param: api.Token{
+				Username: "eve",
+				Password: "456789",
+			},
 		},
 		// Invalidate
 		{
@@ -385,6 +491,7 @@ func TestFullFlow(t *testing.T) {
 			header:     map[string]*string{"token": bobToken},
 		},
 		// deleted token
+		// invalid token after bobToken has been invalidated
 		{
 			path:       "/user/roles",
 			method:     "POST",
@@ -395,6 +502,7 @@ func TestFullFlow(t *testing.T) {
 			header:     map[string]*string{"token": bobToken},
 		},
 		// expired token
+		// wait for token life time second
 		{
 			path:       "/user/roles",
 			method:     "POST",
@@ -418,9 +526,16 @@ func TestFullFlow(t *testing.T) {
 
 			assert.Equal(t, c.expectCode, response.Status)
 			assert.Equal(t, c.expectErr, response.Error)
+			if c.expectData != nil {
+				assert.Equal(t, c.expectData, response.Data)
+			}
 
-			if c.path == "/auth/token" && c.name == "ok" {
-				initToken = w.Header().Get("token")
+			if c.path == "/auth/token" && c.name == "ok bob" {
+				initBobToken = w.Header().Get("token")
+			}
+
+			if c.path == "/auth/token" && c.name == "ok eve" {
+				initEveToken = w.Header().Get("token")
 			}
 
 			if c.path == "/auth/token" && c.name == "ok for testing expire" {
