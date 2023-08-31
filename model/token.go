@@ -40,7 +40,6 @@ func GenerateToken(user *User) *Token {
 	}
 	b, _ := json.Marshal(t.User)
 	b = []byte(string(b) + uuid.New().String())
-	fmt.Println(string(b))
 	t.Token = fmt.Sprintf("%x", md5.Sum(b))
 
 	tLock.Lock()

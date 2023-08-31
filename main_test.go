@@ -547,3 +547,128 @@ func TestFullFlow(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkCreateUserUnique(b *testing.B) {
+	jsonByte, _ := json.Marshal(api.CreateUser{
+		Username: "adam",
+		Password: "123456",
+	})
+	req := httptest.NewRequest("POST", "/user/create", bytes.NewReader(jsonByte))
+
+	for n := 0; n < 10; n++ {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		var response api.Response
+		json.Unmarshal([]byte(w.Body.String()), &response)
+
+		assert.Equal(b, int64(0), response.Status)
+	}
+}
+
+func BenchmarkUserRoles(b *testing.B) {
+	prepares := []struct {
+		path       string
+		method     string
+		name       string
+		expectCode int64
+		expectErr  string
+		expectData interface{}
+		param      interface{}
+		header     map[string]*string
+	}{
+		{
+			path:       "/user/create",
+			method:     "POST",
+			name:       "create bob",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.CreateUser{
+				Username: "bob",
+				Password: "123456",
+			},
+		},
+		{
+			path:       "/role/create",
+			method:     "POST",
+			name:       "create admin",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.CreateRole{
+				Role: "admin",
+			},
+		},
+		{
+			path:       "/role/create",
+			method:     "POST",
+			name:       "create ops",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.CreateRole{
+				Role: "ops",
+			},
+		},
+		{
+			path:       "/user/addRole",
+			method:     "POST",
+			name:       "add admin",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.AddUserRole{
+				Username: "bob",
+				Role:     "admin",
+			},
+		},
+		{
+			path:       "/user/addRole",
+			method:     "POST",
+			name:       "add ops",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.AddUserRole{
+				Username: "bob",
+				Role:     "ops",
+			},
+		},
+		{
+			path:       "/auth/token",
+			method:     "POST",
+			name:       "bob token",
+			expectCode: 0,
+			expectErr:  "",
+			param: api.Token{
+				Username: "bob",
+				Password: "123456",
+			},
+		},
+	}
+
+	token := ""
+
+	for _, c := range prepares {
+		w := post(c.path, c.method, c.param, c.header, router)
+		var response api.Response
+		json.Unmarshal([]byte(w.Body.String()), &response)
+
+		assert.Equal(b, c.expectCode, response.Status)
+		assert.Equal(b, c.expectErr, response.Error)
+
+		if c.path == "/auth/token" && c.name == "bob token" {
+			token = w.Header().Get("token")
+		}
+	}
+
+	// start concurrent call
+	req := httptest.NewRequest("POST", "/user/roles", nil)
+	req.Header.Set("token", token)
+	for n := 0; n < 10000; n++ {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		var response api.Response
+		json.Unmarshal([]byte(w.Body.String()), &response)
+
+		assert.Equal(b, int64(0), response.Status)
+		assert.Equal(b, []interface{}{"admin", "ops"}, response.Data)
+	}
+}
