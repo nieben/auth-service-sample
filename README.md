@@ -21,10 +21,10 @@ go run main.go -p 8080 -tt 7200
 go test -run=FullFlow . -v
 
 # Benchmark: unique for creating same user
-# 10 times call with 1 SUCCESS and 9 FAIL
+# cpus * 5 calls with only 1 SUCCESS
 go test -run=none -bench=CreateUserUnique .
 
-# Benchmark: 10000 times call for [All roles]
+# Benchmark: cpus * 3000 calls for [All roles]
 go test -run=none -bench=UserRoles -count=0 .
 ```
 
