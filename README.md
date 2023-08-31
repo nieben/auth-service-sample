@@ -22,7 +22,7 @@ go test -run=FullFlow . -v
 
 # Benchmark: unique for creating same user
 # cpus * 5 parallel calls(each 5 times) with only 1 SUCCESS
-go test -run=none -bench=CreateUserUnique .
+go test -run=none -bench=CreateUserUnique -count=0 .
 
 # Benchmark: cpus * 2500 parallel calls(each 10 times) for [All roles]
 go test -run=none -bench=UserRoles -count=0 .
