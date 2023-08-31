@@ -555,6 +555,7 @@ func BenchmarkCreateUserUnique(b *testing.B) {
 	})
 	req := httptest.NewRequest("POST", "/user/create", bytes.NewReader(jsonByte))
 
+	b.SetParallelism(5)
 	b.RunParallel(func(pb *testing.PB) {
 		pb.Next()
 		for i := 0; i < 5; i++ {
@@ -570,6 +571,8 @@ func BenchmarkCreateUserUnique(b *testing.B) {
 }
 
 func BenchmarkUserRoles(b *testing.B) {
+	model.TokenLifeTime = 7200
+
 	prepares := []struct {
 		path       string
 		method     string
@@ -664,9 +667,10 @@ func BenchmarkUserRoles(b *testing.B) {
 	// start concurrent call
 	req := httptest.NewRequest("POST", "/user/roles", nil)
 	req.Header.Set("token", token)
+	b.SetParallelism(2500)
 	b.RunParallel(func(pb *testing.PB) {
 		pb.Next()
-		for n := 0; n < 3000; n++ {
+		for n := 0; n < 10; n++ {
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
