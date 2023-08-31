@@ -1,13 +1,13 @@
 # auth-service-sample
 
-Language: Golang & Gin Framework
+####Language: Golang & Gin Framework
 
-Install:
+###Install:
 ```
 go mod tidy
 ```
 
-Run:
+###Run:
 ```
 # -p: serve port(default 8080)
 # -tt: token lifetime(default 7200)
@@ -15,7 +15,7 @@ Run:
 go run main.go -p 8080 -tt 7200
 ```
 
-Test:
+###Test:
 ```
 # FullFlow Test: token lifetime 5 second
 go test -run=FullFlow . -v
@@ -28,4 +28,5 @@ go test -run=none -bench=CreateUserUnique .
 go test -run=none -bench=UserRoles -count=0 .
 ```
 
-API Doc: see ./docs/swagger.yaml 
+###API Doc
+see ./docs/swagger.yaml
